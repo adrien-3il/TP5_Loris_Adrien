@@ -1,7 +1,7 @@
 ---
 titre: Architecture micro-service
 sous-titre: TP 5 - Premiers micro-services - Météo
-auteur: Philippe \textsc{Roussille}
+auteur: Philippe 	extsc{Roussille}
 theme: Warsaw
 lang: fr-FR
 section-titles: false
@@ -85,10 +85,17 @@ Héhé, vous avez déjà vu tout le code utile à cette partie... regardez donc 
 
 # Quelques questions de fond
 
-1. Pourquoi ne pas appeler directement open-meteo depuis le navigateur ?
-2. Quel est l'avantage de passer par un microservice intermédiaire ?
-3. Si le format de réponse de `open-meteo` change, que se passe-t-il ?
-4. Que pourrait-on ajouter pour rendre ce service plus complet ou plus robuste ?
+1. Pourquoi ne pas appeler directement open-meteo depuis le navigateur ?  
+Parce que cela exposerait directement l’API externe au client, ce qui n’est pas sécurisé et complique le contrôle des données.
+
+2. Quel est l'avantage de passer par un microservice intermédiaire ?  
+Cela permet de formater les réponses comme on veut, d’ajouter des règles, de cacher les détails techniques, et de garder le contrôle.
+
+3. Si le format de réponse de `open-meteo` change, que se passe-t-il ?  
+Le microservice peut s’adapter sans que les clients aient à changer quoi que ce soit.
+
+4. Que pourrait-on ajouter pour rendre ce service plus complet ou plus robuste ?  
+On pourrait ajouter une mise en cache, une gestion des erreurs plus fine, ou un journal des requêtes.
 
 # Dockerisation obligatoire
 
@@ -117,4 +124,3 @@ http://localhost:5000/apidocs
 ```
 
 > *"Je t'avais dit qu'on pouvait prédire le vent avec Python."* — Roger
-
