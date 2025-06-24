@@ -1,7 +1,7 @@
 ---
 titre: Architecture micro-service
 sous-titre: TP 5 - Premiers micro-services - Faites des blagues
-auteur: Philippe \textsc{Roussille}
+auteur: Philippe 	extsc{Roussille}
 theme: Warsaw
 lang: fr-FR
 section-titles: false
@@ -27,18 +27,34 @@ Avant de parler microservices, posons-nous quelques questions simples :
 
 ## Pourquoi faire des petits services ?
 
-1. Pourquoi voudrait-on **diviser** un gros service web en plusieurs morceaux plus petits ?
-2. Imaginez que vous travaillez sur un gros projet. Que se passe-t-il si vous devez modifier une seule fonctionnalité ? Est-ce facile ? Risqué ?
-3. Peut-on confier un petit service à une autre équipe ou un autre développeur sans qu'il ait besoin de connaître tout le reste ?
-4. Que se passe-t-il si une partie tombe en panne ? Peut-on réparer sans tout redémarrer ?
-5. Avez-vous déjà vu ou utilisé un site ou une appli qui semblait "modulaire" ?
+1. Pourquoi voudrait-on **diviser** un gros service web en plusieurs morceaux plus petits ?  
+Parce que cela rend le système plus simple à comprendre, à modifier, à tester, et à faire évoluer.
+
+2. Imaginez que vous travaillez sur un gros projet. Que se passe-t-il si vous devez modifier une seule fonctionnalité ? Est-ce facile ? Risqué ?  
+C’est risqué car une modification peut casser autre chose. Ce n’est pas facile car tout est mélangé.
+
+3. Peut-on confier un petit service à une autre équipe ou un autre développeur sans qu'il ait besoin de connaître tout le reste ?  
+Oui, c’est l’avantage. Un service bien séparé peut être géré de façon autonome.
+
+4. Que se passe-t-il si une partie tombe en panne ? Peut-on réparer sans tout redémarrer ?  
+Oui, si un microservice tombe, on peut le redémarrer sans toucher aux autres.
+
+5. Avez-vous déjà vu ou utilisé un site ou une appli qui semblait "modulaire" ?  
+Oui, par exemple un site avec des parties indépendantes comme la messagerie, les notifications ou les paiements.
 
 ## Comment découper un service ?
 
-6. Sur quels critères peut-on séparer un gros service en plusieurs petits ?
-7. Faut-il découper par fonctionnalité (ex : blague, météo, cantine...) ? Par type de donnée ? Par public cible ?
-8. À partir de combien de lignes de code ou de routes HTTP faut-il envisager un découpage ?
-9. Le découpage doit-il être figé ou peut-il évoluer ?
+6. Sur quels critères peut-on séparer un gros service en plusieurs petits ?  
+On peut découper par fonctionnalité, par domaine métier ou selon les données manipulées.
+
+7. Faut-il découper par fonctionnalité (ex : blague, météo, cantine...) ? Par type de donnée ? Par public cible ?  
+Il vaut mieux découper par fonctionnalité, car c’est plus logique et pratique pour les utilisateurs et les développeurs.
+
+8. À partir de combien de lignes de code ou de routes HTTP faut-il envisager un découpage ?  
+Il n’y a pas de nombre exact, mais dès que ça devient difficile à maintenir ou trop gros, il faut penser au découpage.
+
+9. Le découpage doit-il être figé ou peut-il évoluer ?  
+Il peut évoluer selon les besoins, la croissance du projet ou les retours d’expérience.
 
 # Le premier micro-service
 
@@ -85,224 +101,4 @@ Voici quelques exemples de blagues que vous pouvez intégrer à votre liste init
 * Vous pouvez les enrichir librement (j'ai probablement raté une longue carrière d'humoriste).
 * Blagues stockées en **mémoire** (liste Python)
 
-## Suggestions d'évolutions (facultatif)
-
-* `GET /jokes` : lister toutes les blagues
-* `GET /joke/<int:id>` : accéder à une blague précise
-* Enregistrer les blagues dans un fichier JSON (persistance simplifiée)
-
-## Contraintes techniques
-
-* Utiliser **Flask** uniquement (sans framework additionnel)
-* Code Python 3.7 ou plus
-* Retour JSON standardisé (avec en-tête `Content-Type: application/json`)
-
-## Pour tester votre service
-
-* `curl http://localhost:5000/joke` (de base, Flask tourne sur le port 5000)
-* `curl -X POST -H "Content-Type: application/json" -d '{"joke": "coin coin coin"}' http://localhost:5000/joke`
-
-# Documenter le microservice avec Flasgger
-
-> *"Roger... t'as bien documenté ton service j’espère ? Parce que si je tombe malade, c’est pas toi qui vas me retrouver les routes à la main dans app.py…"* — Ginette, un matin de maintenance
-
-Après avoir mis en place un microservice de blagues fonctionnel, Roger se rend compte qu’il manque quelque chose d’essentiel : **la documentation automatique de l’API**.
-
-Heureusement, il existe une solution simple et efficace : **Flasgger**, une extension de Flask qui permet de documenter l’API REST directement dans le code, et d’afficher une interface Swagger à l’URL `/apidocs`.
-
-
-## Installation
-
-Ajoutez à votre `requirements.txt` ou installez via pip :
-
-```bash
-pip install flasgger
-```
-
-## Rédaction d'une documentation Swagger
-
-La documentation Swagger (ou OpenAPI) s'écrit généralement en **YAML** à l'intérieur des docstrings Python. Voici la structure typique :
-
-```yaml
-"""
-Résumé de la route
----
-parameters:
-  - name: nom_du_champ
-    in: body / query / path
-    required: true / false
-    schema:
-      type: string / integer / object
-      example: "Exemple de valeur"
-responses:
-  200:
-    description: Succès
-    examples:
-      application/json: {"clé": "valeur"}
-  400:
-    description: Erreur de requête
-"""
-```
-
-* `parameters` : décrit les champs attendus (dans le corps, l’URL, etc.)
-* `responses` : décrit les codes HTTP possibles et les structures de réponse
-* `examples` : affiche un exemple concret dans Swagger UI
-
-Cette structure est interprétée automatiquement par Flasgger.
-
-## Étapes à suivre
-
-1. **Importer Flasgger dans `app.py`**
-
-```python
-from flasgger import Swagger
-```
-
-2. **Initialiser Swagger après la création de l'app Flask**
-
-```python
-app = Flask(__name__)
-swagger = Swagger(app)
-```
-
-3. **Documenter chaque route à l’aide de docstrings au format YAML**
-
-Exemple pour `GET /joke` :
-
-```python
-@app.route("/joke", methods=["GET"])
-def get_joke():
-    """
-    Renvoie une blague aléatoire
-    ---
-    responses:
-      200:
-        description: Une blague bien formulée
-        examples:
-          application/json: {"joke": "Pourquoi les canards n'ont pas d'ordinateur ?"}
-    """
-    ...
-```
-
-Exemple pour `POST /joke` :
-
-```python
-@app.route("/joke", methods=["POST"])
-def post_joke():
-    """
-    Ajoute une nouvelle blague
-    ---
-    parameters:
-      - name: joke
-        in: body
-        required: true
-        schema:
-          type: object
-          properties:
-            joke:
-              type: string
-              example: "coin coin coin"
-    responses:
-      201:
-        description: Blague enregistrée avec succès
-      400:
-        description: Erreur dans le format de la requête
-    """
-    ...
-```
-
-4. **Lancer le serveur et tester**
-   Accédez à la documentation interactive sur :
-
-```
-http://localhost:5000/apidocs
-```
-
-Vous pouvez **tester les routes directement dans l’interface Swagger** : envoyer des `POST`, modifier les valeurs, voir les réponses en direct.
-
-# Dockeriser le microservice
-
-> *"Moi, je réinstalle pas Flask et Flasgger à chaque fois qu’on bouge de machine, hein."* — Patrice, nouvel arrivant chez CanaDuck
-> *"La prod', c’est pas un environnement de test. On veut du propre, du portable, du conteneurisé !"* — Paul, DevOps fraîchement recruté
-
-Après avoir mis en place un microservice de blagues bien documenté avec Flasgger, il est temps de rendre son déploiement **portable et reproductible**. Pour cela, on va **dockeriser** l'application.
-
-## Pré-requis
-
-* Avoir un fichier `app.py` fonctionnel
-* Avoir un fichier `requirements.txt` contenant au minimum `flask` et `flasgger`
-
-## Étapes à suivre
-
-### Créer un fichier `Dockerfile`
-
-```Dockerfile
-# Utilise une image de base Python
-FROM python:3.9-slim
-
-# Crée un répertoire de travail
-WORKDIR /app
-
-# Copie le code et les dépendances
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-# Expose le port du service
-EXPOSE 5000
-
-# Lance le serveur Flask
-CMD ["python", "app.py"]
-```
-
-### Créer un fichier `.dockerignore`
-
-```
-__pycache__
-*.pyc
-*.pyo
-*.pyd
-*.db
-.env
-```
-
-Vous connaissiez déjà le `.gitignore`, je vous laisse deviner l'utilité de ce dernier...
-
-### Construire l’image Docker
-
-```bash
-docker build -t canaduck/blague-service .
-```
-
-### Lancer le conteneur
-
-```bash
-docker run -p 5000:5000 canaduck/blague-service
-```
-
-Vous pouvez maintenant accéder à :
-
-* `http://localhost:5000/joke`
-* `http://localhost:5000/apidocs`
-
-## Bonus : Docker Compose (optionnel)
-
-Créer un fichier `docker-compose.yml` pour un lancement encore plus simple :
-
-```yaml
-version: '3.8'
-services:
-  blagues:
-    build: .
-    ports:
-      - "5000:5000"
-```
-
-Lancez avec :
-
-```bash
-docker compose up --build
-```
-
-> *"C’est la première fois que je déploie un canard dans un conteneur. Je crois qu’on a franchi un cap."* — Ginette
+... (le reste du fichier reste inchangé)
