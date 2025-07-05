@@ -1,0 +1,135 @@
+3.1 Pourquoi faire des petits services ?
+
+1. Pourquoi voudrait-on diviser un gros service web en plusieurs morceaux plus petits ?
+Pour la modularité. Chaque petit service est plus simple à développer, tester, et maintenir. On peut les mettre à jour indépendamment les uns des autres sans redéployer tout le système. Ça permet aussi de faire évoluer chaque partie à son propre rythme et même avec des technologies différentes si besoin.
+
+2. Imaginez que vous travaillez sur un gros projet. Que se passe-t-il si vous devez modifier une seule fonctionnalité ? Est-ce facile ? Risqué ?
+Dans un gros projet monolithique, modifier une seule fonctionnalité peut être risqué. Tout est interconnecté, donc un changement peut avoir des effets de bord inattendus ailleurs. C'est rarement facile car il faut comprendre une grande partie du code, et chaque déploiement est une opération lourde qui impacte tout le projet.
+
+3. Peut-on confier un petit service à une autre équipe ou un autre développeur sans qu'il ait besoin de connaître tout le reste ?
+Oui, c'est l'un des plus gros avantages. Une équipe peut prendre en charge un microservice en se concentrant uniquement sur son API (ses points d'entrée/sortie) et sa logique interne. Elle n'a pas besoin de comprendre le fonctionnement des autres services, tant qu'elle respecte le contrat d'interface.
+
+4. Que se passe-t-il si une partie tombe en panne ? Peut-on réparer sans tout redémarrer ?
+Si un microservice tombe en panne, il n'affecte en principe que les fonctionnalités qui dépendent de lui. Le reste de l'application peut continuer à fonctionner. On peut alors réparer et redéployer uniquement ce service défaillant, sans avoir à toucher au reste du système.
+
+5. Avez-vous déjà vu ou utilisé un site ou une appli qui semblait "modulaire" ?
+Oui, par exemple sur un site e-commerce. Le service de panier, le système de recommandation, la gestion du compte utilisateur et le module de paiement sont souvent des services distincts. Si les recommandations sont en panne, on peut quand même chercher des produits et payer.
+
+3.2 Comment découper un service ?
+
+6. Sur quels critères peut-on séparer un gros service en plusieurs petits ?
+Le critère principal est le "domaine métier" ou la responsabilité fonctionnelle. On regroupe ce qui est logiquement lié : un service pour les utilisateurs, un pour les paiements, un pour les produits, etc. On cherche à avoir une forte cohésion à l'intérieur du service et un faible couplage avec les autres.
+
+7. Faut-il découper par fonctionnalité (ex: blague, météo, cantine...) ? Par type de donnée ? Par public cible ?
+Le découpage par fonctionnalité est le plus courant et le plus logique. Découper par type de donnée ou public cible peut avoir du sens dans certains cas très spécifiques, mais en général, la responsabilité métier (la fonctionnalité) est le guide le plus pertinent pour un découpage cohérent.
+
+8. À partir de combien de lignes de code ou de routes HTTP faut-il envisager un découpage ?
+Il n'y a pas de règle fixe basée sur le nombre de lignes ou de routes. C'est plus une question de complexité. Quand on sent qu'une partie du code devient un mini-projet à elle seule, avec sa propre logique et ses propres données, et que sa modification devient compliquée, c'est un bon signal pour envisager de l'extraire en microservice.
+
+9. Le découpage doit-il être figé ou peut-il évoluer ?
+Il doit absolument pouvoir évoluer. L'architecture microservices permet justement cette flexibilité. On peut commencer avec des services assez larges et les scinder plus tard si nécessaire, ou au contraire fusionner des petits services si on se rend compte que leur découpage n'était pas pertinent.
+Document 2 : TP 5 - Premiers micro-services - Météo
+
+4. Quelques questions de fond
+
+1. Pourquoi ne pas appeler directement open-meteo depuis le navigateur ?
+Pour plusieurs raisons : d'abord pour la sécurité, afin de ne pas exposer nos clés d'API côté client. Ensuite, pour le contrôle : en passant par notre propre service, on peut ajouter une couche de cache, transformer les données, ou gérer les erreurs comme on le souhaite avant de les renvoyer au client.
+
+2. Quel est l'avantage de passer par un microservice intermédiaire ?
+L'avantage est de créer une "façade". Ce microservice devient notre unique point de contact pour la météo. Ça nous isole du service externe : si on change de fournisseur météo demain, seul ce microservice devra être mis à jour, les autres services qui l'utilisent ne verront aucune différence.
+
+3. Si le format de réponse de open-meteo change, que se passe-t-il ?
+Si on a notre microservice intermédiaire, ce n'est pas un drame. On aura juste à adapter la partie du code de ce service qui "parse" la réponse de l'API externe pour qu'elle corresponde au nouveau format. Les clients de notre microservice ne seront pas impactés car on continuera à leur envoyer notre format JSON simplifié et stable.
+
+4. Que pourrait-on ajouter pour rendre ce service plus complet ou plus robuste ?
+On pourrait ajouter un système de cache pour ne pas appeler l'API externe à chaque requête. On pourrait aussi mieux gérer les erreurs (timeout, service externe indisponible) et prévoir une réponse par défaut. Enfin, on pourrait supporter plus de villes ou de paramètres (prévisions sur plusieurs jours, etc.).
+Document 3 : TP 5 - Premiers micro-services - La météo, ça coûte cher en bande passante !
+
+3.1 Sur la base de données
+
+1. Pourquoi ajouter une base de données à un service météo aussi simple ? Est-ce justifié ?
+On ajoute une BDD pour mettre en place un cache. Au lieu d'appeler l'API externe à chaque fois, ce qui est lent et coûte de la bande passante, on stocke la réponse. Pour un service très sollicité, c'est justifié pour améliorer les performances, réduire les coûts et éviter un potentiel bannissement de l'API externe pour "flood".
+
+2. Est-ce que chaque microservice devrait avoir sa propre base, ou peut-on les partager ?
+Idéalement, chaque microservice a sa propre base de données. C'est un principe clé de cette architecture pour garantir l'autonomie et le découplage. Partager une base crée une dépendance forte entre les services, ce qui complique les mises à jour et la maintenance.
+
+3. Que gagne-t-on (et que perd-on) en utilisant une base relationnelle plutôt qu'un fichier ou un dictionnaire Python ?
+On gagne la gestion des accès concurrents, la persistance des données (un dictionnaire est perdu si le service redémarre), et des capacités de requêtage puissantes (filtrer, trier, joindre). On perd un peu en simplicité de mise en place par rapport à un simple fichier, et il y a une légère latence pour accéder à la BDD.
+
+4. Que permet une base comme MySQL que ne permet pas un fichier JSON ?
+MySQL garantit l'atomicité, la consistance, l'isolation et la durabilité des transactions (ACID). Elle gère nativement les accès concurrents pour éviter la corruption de données, permet des requêtes complexes et des indexations pour accélérer les recherches, ce qu'un simple fichier JSON ne peut pas faire de manière fiable.
+
+5. Si on voulait partager cette météo avec d'autres services, la base est-elle une bonne interface ?
+Non, la base de données n'est pas une bonne interface entre services. Exposer sa BDD, c'est exposer ses détails d'implémentation. La bonne pratique est de créer une API (HTTP/REST par exemple) pour que les autres services puissent demander les données. Le service reste ainsi le seul maître de ses données et de leur structure.
+
+6. Peut-on facilement sauvegarder/exporter les données ? Et les restaurer ?
+Oui, très facilement. Tous les systèmes de gestion de base de données comme MySQL ont des outils intégrés (comme mysqldump) pour faire des "dumps" (exports) complets de la base. Ces sauvegardes peuvent ensuite être réimportées tout aussi facilement pour restaurer les données.
+
+3.2 Sur les performances et la scalabilité
+
+7. Est-ce que l'ajout d'une BDD rend le service plus rapide ? Plus lent ?
+Ça dépend. La première requête qui nécessite un appel à l'API externe + une écriture en base sera un peu plus lente. Mais toutes les requêtes suivantes qui liront directement depuis la BDD (le cache) seront beaucoup plus rapides. Globalement, le service devient plus performant pour une charge d'utilisation normale.
+
+8. Que se passe-t-il si plusieurs clients envoient des requêtes simultanément ?
+La base de données gère ça très bien. Grâce à ses mécanismes de verrouillage et de gestion des transactions, elle peut traiter de multiples requêtes en parallèle sans risquer de corrompre les données. C'est un de ses rôles fondamentaux, contrairement à une écriture dans un fichier qui serait très risquée.
+
+9. Peut-on mettre à jour une donnée météo sans recontacter l'API externe ?
+Non, pas pour avoir une information "fraîche". La BDD ne contient que les données que l'on y a mises. Pour obtenir une nouvelle prévision météo, la seule source de vérité reste l'API externe. La BDD sert de cache, pas de générateur de prévisions.
+
+10. Est-ce qu'on peut interroger la météo d'hier ou de demain avec cette architecture ?
+Oui, si on stocke les données avec un timestamp. En ne supprimant pas les anciennes entrées, on peut facilement requêter la BDD pour retrouver la météo d'une date passée. Pour la météo de demain, il faudrait que l'API externe nous fournisse des prévisions que l'on stockerait également.
+
+6. Questions de réflexion (sur l'ORM)
+
+1. Pourquoi voudrait-on éviter d'écrire directement des requêtes SQL à la main ?
+Écrire du SQL à la main est risqué à cause des injections SQL si on n'est pas rigoureux. C'est aussi moins portable : si on change de système de BDD (passer de MySQL à PostgreSQL), il faut potentiellement réécrire les requêtes. Enfin, on manipule des chaînes de caractères au lieu d'objets, ce qui est moins naturel dans un langage orienté objet comme Python.
+
+2. Que gagne-t-on en utilisant un ORM comme SQLAlchemy ?
+On gagne en productivité et en sécurité. L'ORM mappe les tables de la base à des classes Python, ce qui permet de manipuler les données avec des objets, de manière plus intuitive. Il gère aussi automatiquement la protection contre les injections SQL et facilite la portabilité du code entre différents types de BDD.
+
+3. Est-ce que l'ORM vous empêche complètement d'accéder au SQL si besoin ?
+Non, pas du tout. Un bon ORM comme SQLAlchemy permet toujours d'exécuter des requêtes SQL brutes ("raw SQL") si on a besoin de faire une optimisation très spécifique ou une requête trop complexe à exprimer avec l'ORM. On garde cette porte de sortie en cas de nécessité.
+
+4. Est-ce que le code Python devient plus clair ou plus opaque avec un ORM ?
+En général, il devient plus clair et plus lisible pour les opérations courantes (CRUD : Create, Read, Update, Delete). Le code métier est plus proche de la logique applicative que de la logique de base de données. Cependant, pour des requêtes très complexes, l'enchaînement de méthodes de l'ORM peut parfois sembler plus opaque qu'une requête SQL bien écrite.
+
+5. À quel moment l'ORM peut devenir un inconvénient ? (performances, complexité, etc.)
+L'ORM peut devenir un inconvénient pour des requêtes très complexes ou des optimisations de performance de bas niveau. L'abstraction a un léger coût, et l'ORM peut parfois générer des requêtes SQL non optimales. Dans ces cas-là, écrire du SQL à la main peut être plus performant. De plus, pour un projet très simple, il peut ajouter une couche de complexité inutile.
+Document 4 : TP 5 - Premiers micro-services - Agrégation de service
+
+2. Quelques petites questions
+
+1. Ce service fait deux appels HTTP internes. Est-ce efficace ? Pourquoi ?
+En termes de latence pure, non, ce n'est pas le plus efficace car on a deux allers-retours réseau au lieu d'un. Mais c'est le principe de l'agrégation en microservices : on privilégie la séparation des responsabilités. Le surcoût réseau est généralement faible en interne et le gain en modularité et en maintenance est bien plus important.
+
+2. Que se passe-t-il si l'un des deux services répond avec une erreur ou met trop de temps ?
+C'est un point critique à gérer. Le service agrégateur doit être robuste : il doit implémenter un "timeout" pour ne pas attendre indéfiniment, et gérer les erreurs. Il peut choisir de renvoyer une erreur globale, ou de renvoyer une réponse partielle (par exemple, la météo mais pas la blague, avec un champ indiquant l'erreur).
+
+3. Peut-on réutiliser ce service dans d'autres cas (email, impression, vocal) ?
+Oui, absolument. Comme il expose une API HTTP simple qui renvoie du JSON, n'importe quel autre système (un service d'envoi d'email, un script pour imprimer un rapport, un assistant vocal) peut l'appeler pour récupérer l'information combinée "météo + blague". C'est tout l'intérêt de l'approche API.
+
+4. Quelle est la différence entre un service "client" (ex : navigateur) et ce nouveau service ?
+Un service "client" comme un navigateur est en général le consommateur final de l'information, et il l'affiche à un utilisateur humain. Ce nouveau service agrégateur est lui-même un service "backend" : il consomme d'autres services pour produire une nouvelle donnée, qui sera ensuite consommée soit par un client final, soit par un autre service. Il est un maillon de la chaîne.
+
+6.1 Questions d'exploration (sur le Reverse Proxy)
+
+1. Quelles sont les principales différences entre la configuration manuelle d'un nginx.conf et l'approche déclarative de Traefik ?
+La configuration de Nginx est souvent statique : on doit manuellement éditer un fichier nginx.conf pour ajouter ou modifier une route. Traefik a une approche déclarative et dynamique : il surveille l'environnement Docker et se configure automatiquement à partir des "labels" qu'on place sur les conteneurs. Pas besoin de redémarrer ou de modifier un fichier central.
+
+2. Dans quel type de projet Caddy pourrait-il être plus avantageux que Traefik ?
+Caddy est très fort pour les déploiements simples où la priorité est d'avoir du HTTPS quasi-instantanément et sans effort. Sa gestion automatique des certificats Let's Encrypt est excellente. Pour un projet web plus classique (site vitrine, blog) qui n'a pas la complexité dynamique d'une grosse stack de microservices, Caddy est souvent plus simple et rapide à mettre en place.
+
+3. Que se passe-t-il si un service change de nom ou de port dans votre environnement Docker ? Lequel de ces outils gère cela automatiquement ?
+Traefik gère ça automatiquement. Comme il lit les labels des conteneurs en temps réel, si un service est redéployé avec un nouveau port ou nom (même si c'est rare), Traefik mettra à jour sa configuration de routage sans intervention. Avec Nginx en configuration manuelle, il faudrait aller modifier le fichier de configuration et le recharger.
+
+4. Lequel de ces outils vous semble le plus adapté à un usage en production ? Pourquoi ?
+Nginx est historiquement le plus éprouvé et réputé pour sa robustesse et ses performances en production à très grande échelle. Traefik est cependant parfaitement "production-ready", surtout dans des environnements très dynamiques basés sur des conteneurs (comme Kubernetes), où sa configuration automatique est un avantage majeur. Le choix dépend de la nature de l'infrastructure.
+
+5. Comment chacun de ces reverse proxies gère-t-il la génération et le renouvellement des certificats SSL ?
+Caddy est le champion ici : il gère tout automatiquement par défaut, c'est sa philosophie. Traefik le fait aussi très bien, il suffit de le configurer pour qu'il se connecte à Let's Encrypt. Pour Nginx, c'est une opération manuelle : il faut utiliser un outil externe comme certbot pour générer les certificats, puis configurer Nginx pour qu'il les utilise, et mettre en place une tâche cron pour le renouvellement.
+
+6. Est-il raisonnable d'exposer le docker.sock à un reverse proxy ? Quels avantages cela apporte-t-il ? Quels risques cela peut-il poser ?
+C'est le principe de fonctionnement de Traefik. L'avantage est immense : il obtient une connaissance complète et en temps réel de tous les conteneurs qui tournent, ce qui lui permet de se configurer dynamiquement. Le risque est aussi immense : le docker.sock donne un accès équivalent à root sur la machine hôte. Si le conteneur Traefik est compromis, c'est toute la machine qui l'est. Il faut donc bien sécuriser l'accès à son dashboard.
+
+7. Pourriez-vous imaginer un scénario où l'on utiliserait Traefik pour les services internes et Nginx pour l'exposition publique ? Pourquoi (ou pourquoi pas) ?
+Oui, c'est un scénario très courant et très pertinent. Traefik gère le routage dynamique et complexe entre les microservices à l'intérieur du réseau Docker. Nginx est placé "en frontal" (en "edge proxy") : il reçoit tout le trafic public, gère le cache, le rate limiting, et transmet uniquement les requêtes légitimes à Traefik. On combine ainsi la flexibilité de Traefik en interne et la robustesse/sécurité éprouvée de Nginx face à Internet.
